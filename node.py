@@ -1,6 +1,9 @@
 class Node:
-  def __init__(self,data):
-    self.label = None
-    self.data = data
+  def __init__(self, attribute, value, output = None):
+    self.attribute = attribute
+    self.value = value
+    self.output = output #only for leaf nodes
     self.children = []
-	# you may want to add additional fields here...
+    
+  def addChild(self, child):
+    self.children.append(child)
