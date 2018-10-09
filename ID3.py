@@ -1,6 +1,5 @@
 from node import Node
 import math
-
 CLASS = "Class"
 
 def ID3(examples, default):
@@ -70,7 +69,6 @@ def getAttributesList(examples):
   keys.remove(CLASS)
   return keys
   
-
 def getPossibleValuesForAttribute(examples, attribute):
   values = set()
   for example in examples:
@@ -85,8 +83,10 @@ def getBestAttribute(examples, attributes):
   bestAttribute = None
   minEntropy = None
   for attribute in attributes:
-    entropy = getEntropy(examples, attribute)
-    if minEntropy is None:
+    entropy = getInfoGainForAttribute(examples, attribute)
+    if entropy is None:
+      continue    
+    elif minEntropy is None:
       minEntropy = entropy
       bestAttribute = attribute
     elif entropy < minEntropy:
@@ -94,7 +94,7 @@ def getBestAttribute(examples, attributes):
       bestAttribute = attribute
   return bestAttribute
 
-def getEntropy(examples, attribute):
+def getInfoGainForAttribute(examples, attribute):
   '''
   1. list the possible output values for this attribute
   2. foreach attribute value: calculate P(Ai = v) * entropy of Y for Ai = v
@@ -105,6 +105,8 @@ def getEntropy(examples, attribute):
   for example in examples:
     attrOutputValues.add(example[attribute])
     # attributeValueOutputListMap.append(dict(example[attribute], example["class"]))
+  if len(attrOutputValues) is 1:
+    return None
   totalEntropy = 0
   examplesCount = len(examples)
 
@@ -129,7 +131,6 @@ def getEntropy(examples, attribute):
   totalEntropy += attrValueProbability * classEntropyForAttrValue
   return totalEntropy
 
-
 def prune(node, examples):
   '''
   Takes in a trained tree and a validation set of examples.  Prunes nodes in order
@@ -142,7 +143,13 @@ def test(node, examples):
   Takes in a trained tree and a test set of examples.  Returns the accuracy (fraction
   of examples the tree classifies correctly).
   '''
-
+  totalExamples = len(examples)
+  correctlyClassifiedExamplesCount = 0
+  for example in examples:
+    result = evaluate(node, example)
+    if result == example[CLASS]:
+      correctlyClassifiedExamplesCount += 1
+  return correctlyClassifiedExamplesCount / totalExamples
 
 def evaluate(node, example):
   '''
@@ -151,11 +158,12 @@ def evaluate(node, example):
   ''' 
   tempNode = node
   while tempNode.children is not None:
-    for child in node.children:
+    for child in tempNode.children:
       if(child.output is not None):
         return child.output
       elif example[child.attribute] == child.value:
         tempNode = child
+        continue
   return None
 
 
