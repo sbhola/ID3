@@ -1,4 +1,5 @@
-import ID3, parse, random
+import ID3, parse, random, mini_auto_grader
+from mini_auto_grader import mini_grader
 
 data1 = [
   dict(a= 1, b= 0, c= 1, Class= 'B'),
@@ -23,7 +24,7 @@ data3 = [
   dict(a= 1, b= 0, c= 1, Class= 0),
   dict(a= 0, b= 1, c= 1, Class= 1)
 ]
-
+mini_grader()
 data = [dict(a=1, b=0, Class=1), dict(a=1, b=1, Class=1)]
 tree = ID3.ID3(data, 0)
 if tree != None:
@@ -97,6 +98,6 @@ for i in range(100):
 print(withPruning)
 print(withoutPruning)
 print("average with pruning",sum(withPruning)/len(withPruning)," without: ",sum(withoutPruning)/len(withoutPruning))
-
+print("test over!")
 
 #testPruningOnHouseData("house_votes_84.data")
