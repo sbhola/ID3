@@ -1,6 +1,8 @@
 from node import Node
 import math, copy
 CLASS = "Class"
+UNKNOWN = "?"
+
 
 def ID3(examples, default):
   '''
@@ -16,10 +18,10 @@ def ID3(examples, default):
 
 def buildTree(examples, default, parentNode, attributes):
   if not examples or not attributes or len(attributes) is 0:
-    parentNode.addChild(Node(default, default, default))
+    parentNode.addChild(Node(default, default, default,0.0))
   elif isNonTrivialSplitPossible(examples) == False:
     modeClass = getModeClassLabel(examples)
-    parentNode.addChild(Node(modeClass, modeClass, modeClass))
+    parentNode.addChild(Node(modeClass, modeClass, modeClass,0.0))
   else:
     bestAttribute = getBestAttribute(examples, attributes)
     #print(bestAttribute + " is best attribute from " + " , ".join(attributes))
@@ -30,6 +32,8 @@ def buildTree(examples, default, parentNode, attributes):
       examplesWithBesAttributeValue = getExamplesWithBestAttributeValue(examples, bestAttribute, value)
       attributeValueProbability = len(examplesWithBesAttributeValue) / len(examples)
       child = Node(bestAttribute, value, None, attributeValueProbability)
+      if bestAttribute is value:
+        print("something is terribly wrong, attribute = value")
       modeOfExampleWithBestValue = getModeClassLabel(examplesWithBesAttributeValue)
       if attributes.__contains__(bestAttribute):
         attributes.remove(bestAttribute)
@@ -143,31 +147,56 @@ def prune(node, examples):
   '''
   if not examples:
     return
-  if node.value is None and node.output is None:
-    return 
   originalAccuracy = test(node, examples)
   prunableNodes = []
   findPrunableNodes(node, prunableNodes)
+  totalPrunableNodes = len(prunableNodes)
+  nodesPruned = 0
+  while nodesPruned < totalPrunableNodes:
+    isNodePruned = pruneNode(node, prunableNodes[nodesPruned],originalAccuracy,examples)
+    nodesPruned += 1
+    if isNodePruned is True:
+      findPrunableNodes(node, prunableNodes)
+      totalPrunableNodes = len(prunableNodes)
+      nodesPruned = 0  
+      isNodePruned = False
+  
+def pruneNode(rootNode, prunableNode, originalAccuracy, examples):
+  if prunableNode.output is not None:
+    return False  
+  pruneOutput = getPruneOutput(prunableNode)
+  pruneChildren = prunableNode.children
+  prunableNode.children = []
+  prunableNode.output = pruneOutput
+  pruneAccuracy = test(rootNode, examples)
+  if originalAccuracy > pruneAccuracy:
+    prunableNode.children = pruneChildren
+    return False
+  return True
+
+'''
   for prunableNode in prunableNodes:
     pruneOutput = getPruneOutput(prunableNode)
     pruneChildren = prunableNode.children
     prunableNode.children = []
     pruneAccuracy = test(node, examples)
-    if originalAccuracy > pruneAccuracy(node, examples):
+    if originalAccuracy > pruneAccuracy:
       prunableNode.children = pruneChildren
     else:
       prunableNode.output = pruneOutput
       #prune(node, examples)
+'''
 
 def isLeafNode(node):
   return len(node.children) == 0 and node.output != None
 
-def isPrunableNode(node):
+def isPrunableNode(node):  
   totalChild = len(node.children)
+  if totalChild is 0:
+    return False
   for child in node.children:
-    if not isLeafNode(child):
-      totalChild -= 1
-      break
+    if isLeafNode(child):
+      totalChild -= 1      
   return totalChild == 0    
 
 def findPrunableNodes(node, prunableNodes):
@@ -179,10 +208,10 @@ def findPrunableNodes(node, prunableNodes):
 
 def getPruneOutput(node):
   output = None
-  attrProb = 0.0
+  attrProb = -1
   for child in node.children:
-    if attrProb < child.probability:
-      attrProb = child.probability
+    if attrProb < child.attributeValueProbability:
+      attrProb = child.attributeValueProbability
       output = child.output
   return output  
 
@@ -210,13 +239,30 @@ def evaluate(node, example):
   childrenLength = len(tempNode.children)
   while tempNode.children is not None and childrenTraversed <= childrenLength:
     childrenTraversed += 1
-    for child in tempNode.children:
+    for child in tempNode.children:     
       if(child.output is not None):
         return child.output
-      elif example[child.attribute] == child.value:
+      if example[child.attribute] is UNKNOWN:
+        attributeValueWithHighestProbability = getAttributeValueWithHighestProbability(child, child.attribute)
+        example[child.attribute] = attributeValueWithHighestProbability
+      if example[child.attribute] == child.value:
         tempNode = child
-        continue      
-  return None  
+        continue       
+
+  return None
+
+def getAttributeValueWithHighestProbability(node, attribute):
+  highestProbability = None
+  attributeValueWithHighestProbability = None
+  for child in node.children:
+    if highestProbability is None:
+      highestProbability = child.attributeValueProbability
+      attributeValueWithHighestProbability = child.value
+    elif child.attributeValueProbability > highestProbability:
+      highestProbability = child.attributeValueProbability
+      attributeValueWithHighestProbability = child.value
+  return attributeValueWithHighestProbability
+
 
 
 
